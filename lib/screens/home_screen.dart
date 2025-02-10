@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'login_screen.dart'; // استيراد شاشة تسجيل الدخول
 
 class HomeScreen extends StatelessWidget {
   final String userName;
@@ -26,8 +27,11 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // الرجوع إلى صفحة تسجيل الدخول
-                Navigator.pop(context);
+                // توجيه المستخدم إلى شاشة تسجيل الدخول بعد تسجيل الخروج
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
               },
               child: const Text('تسجيل خروج'),
               style: ElevatedButton.styleFrom(
