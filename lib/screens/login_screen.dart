@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fateen/models/student.dart'; // استيراد كلاس الطالب
 import 'home_screen.dart';
 import 'signup_screen.dart'; // استيراد صفحة التسجيل
+import 'reset_password_screen.dart'; // استيراد صفحة إعادة تعيين كلمة المرور
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -74,11 +75,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icon(Icons.lock, color: Colors.blue),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const ResetPasswordScreen()),
+                    );
+                  },
+                  child: const Text(
+                    'نسيت كلمة المرور؟',
+                    style: TextStyle(color: Colors.blue, fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: loginUser,
                 child: const Text('تسجيل الدخول',
-                    style: TextStyle(color: Colors.white)),
+                    style: TextStyle(color: Colors.blue)),
               ),
               const SizedBox(height: 20),
               Row(
