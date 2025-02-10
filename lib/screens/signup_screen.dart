@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fateen/models/student.dart'; // استيراد كلاس الطالب
 import 'login_screen.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -15,32 +14,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController majorController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<void> registerUser() async {
     if (nameController.text.isNotEmpty &&
         emailController.text.isNotEmpty &&
         passwordController.text.isNotEmpty &&
         majorController.text.isNotEmpty) {
-      try {
-        // **تسجيل المستخدم في Firebase Authentication**
-        UserCredential userCredential =
-            await _auth.createUserWithEmailAndPassword(
-          email: emailController.text.trim(),
-          password: passwordController.text.trim(),
-        );
+      String? errorMessage = await Student.registerStudent(
+        name: nameController.text,
+        major: majorController.text,
+        email: emailController.text,
+        password: passwordController.text,
+      );
 
-        // **إضافة بيانات المستخدم إلى Firestore**
-        await _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'userId': userCredential.user!.uid,
-          'name': nameController.text,
-          'email': emailController.text,
-          'major': majorController.text,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-
-        // **إظهار رسالة نجاح والانتقال إلى صفحة تسجيل الدخول**
+      if (errorMessage == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('✅ تم إنشاء الحساب بنجاح!'),
@@ -51,10 +38,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
         );
-      } catch (e) {
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('❌ خطأ أثناء التسجيل: ${e.toString()}'),
+              content: Text('❌ خطأ أثناء التسجيل: $errorMessage'),
               backgroundColor: Colors.red),
         );
       }
