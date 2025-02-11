@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'tasks_screen.dart'; // استيراد شاشة المهام
-import 'login_screen.dart'; // استيراد شاشة تسجيل الدخول
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fateen/models/student.dart';
+import 'edit_profile_screen.dart'; // استيراد صفحة التعديل الجديدة
 
 class HomeScreen extends StatefulWidget {
   final String userName;
@@ -14,13 +15,12 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // قائمة الصفحات المرتبطة بكل عنصر في شريط التنقل
   final List<Widget> _pages = [
-    HomePage(), // الصفحة الرئيسية
-    StudySchedulePage(), // الجدول الدراسي
-    CoursesPage(), // المقررات الدراسية
-    AiServicesPage(), // خدمات AI
-    SettingsPage(), // الإعدادات
+    const HomePage(),
+    const StudySchedulePage(),
+    const CoursesPage(),
+    const AiServicesPage(),
+    const SettingsPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -36,7 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('الصفحة الرئيسية'),
         backgroundColor: Colors.blue,
       ),
-      body: _pages[_selectedIndex], // عرض الصفحة المحددة حاليًا
+      body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(
@@ -69,11 +69,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// الصفحة الرئيسية مع زر الانتقال إلى صفحة المهام
+// ---------- الصفحات الفرعية ----------
+
 class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -81,27 +84,18 @@ class HomePage extends StatelessWidget {
             'مرحباً بك في الصفحة الرئيسية!',
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => TasksScreen()),
-              );
-            },
-            child: Text('عرض المهام'),
-          ),
         ],
       ),
     );
   }
 }
 
-// صفحة الجدول الدراسي
 class StudySchedulePage extends StatelessWidget {
+  const StudySchedulePage({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text(
         'هنا سيتم عرض الجدول الدراسي',
         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -110,9 +104,10 @@ class StudySchedulePage extends StatelessWidget {
   }
 }
 
-// صفحة المقررات الدراسية
 class CoursesPage extends StatelessWidget {
-  final List<String> courses = [
+  const CoursesPage({super.key});
+
+  final List<String> courses = const [
     "البرمجة بلغة Dart",
     "تطوير تطبيقات Flutter",
     "تصميم واجهات المستخدم",
@@ -123,22 +118,20 @@ class CoursesPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       itemCount: courses.length,
       itemBuilder: (context, index) {
         return Card(
           elevation: 3,
-          margin: EdgeInsets.symmetric(vertical: 8),
+          margin: const EdgeInsets.symmetric(vertical: 8),
           child: ListTile(
-            leading: Icon(Icons.book, color: Colors.blue),
+            leading: const Icon(Icons.book, color: Colors.blue),
             title: Text(
               courses[index],
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            trailing: Icon(Icons.arrow_forward_ios, color: Colors.grey),
-            onTap: () {
-              // يمكنك إضافة وظيفة لعرض تفاصيل المقرر
-            },
+            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+            onTap: () {},
           ),
         );
       },
@@ -146,11 +139,12 @@ class CoursesPage extends StatelessWidget {
   }
 }
 
-// صفحة خدمات الذكاء الاصطناعي
 class AiServicesPage extends StatelessWidget {
+  const AiServicesPage({super.key});
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text(
         'خدمات الذكاء الاصطناعي قيد التطوير...',
         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -159,14 +153,36 @@ class AiServicesPage extends StatelessWidget {
   }
 }
 
-// صفحة الإعدادات
 class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
+
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
     return Center(
-      child: Text(
-        'الإعدادات',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'الإعدادات',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              if (user != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditProfileScreen(userId: user.uid),
+                  ),
+                );
+              }
+            },
+            child: const Text('تعديل الملف الشخصي'),
+          ),
+        ],
       ),
     );
   }

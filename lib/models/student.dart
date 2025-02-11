@@ -117,4 +117,64 @@ class Student {
       return e.toString(); // فشل تسجيل الدخول
     }
   }
+// ... الكود الحالي يبقى كما هو ...
+
+  // ... جميع الحقول والوظائف الحالية تبقى كما هي ...
+
+  // 🔹 دالة تحديث بيانات الطالب
+  static Future<String?> updateStudent({
+    required String userId,
+    required String newName,
+    required String newMajor,
+    required String newEmail,
+  }) async {
+    if (!isValidName(newName)) {
+      return "❌ الاسم يجب أن يحتوي على أحرف فقط بدون أرقام.";
+    }
+
+    if (!isValidMajor(newMajor)) {
+      return "❌ التخصص يجب أن يحتوي على أحرف فقط بدون أرقام.";
+    }
+
+    if (!isValidEmail(newEmail)) {
+      return "❌ يرجى إدخال بريد إلكتروني صحيح.";
+    }
+
+    try {
+      FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+      await firestore.collection('users').doc(userId).update({
+        'name': newName,
+        'major': newMajor,
+        'email': newEmail,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return null; // نجاح التحديث
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  // 🔹 دالة جلب بيانات الطالب
+  static Future<Student?> getStudent(String userId) async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (snapshot.exists) {
+        return Student(
+          userId: userId,
+          name: snapshot['name'],
+          major: snapshot['major'],
+          email: snapshot['email'],
+        );
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }
