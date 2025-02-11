@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'tasks_screen.dart'; // استيراد شاشة المهام
 import 'login_screen.dart'; // استيراد شاشة تسجيل الدخول
 
 class HomeScreen extends StatefulWidget {
@@ -68,14 +69,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// الصفحة الرئيسية
+// الصفحة الرئيسية مع زر الانتقال إلى صفحة المهام
 class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Text(
-        'مرحباً بك في الصفحة الرئيسية!',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'مرحباً بك في الصفحة الرئيسية!',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => TasksScreen()),
+              );
+            },
+            child: Text('عرض المهام'),
+          ),
+        ],
       ),
     );
   }
