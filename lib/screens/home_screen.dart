@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:fateen/models/student.dart';
+import 'task_screen.dart';
+import 'schedule_screen.dart';
+import 'course_screen.dart';
+import 'file_screen.dart';
 import 'edit_profile_screen.dart'; // استيراد صفحة التعديل الجديدة
 
 class HomeScreen extends StatefulWidget {
@@ -15,10 +18,13 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
+  // ✅ تحديث قائمة الصفحات لتشمل جميع الشاشات المطلوبة
   final List<Widget> _pages = [
     const HomePage(),
-    const StudySchedulePage(),
-    const CoursesPage(),
+    ScheduleScreen(),
+    CourseScreen(),
+    TaskScreen(),
+    FileScreen(),
     const AiServicesPage(),
     const SettingsPage(),
   ];
@@ -39,26 +45,16 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'الرئيسية'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'الرئيسية',
-          ),
+              icon: Icon(Icons.calendar_today), label: 'الجدول'),
+          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'المقررات'),
+          BottomNavigationBarItem(icon: Icon(Icons.task), label: 'المهام'),
+          BottomNavigationBarItem(icon: Icon(Icons.folder), label: 'الملفات'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today),
-            label: 'الجدول الدراسي',
-          ),
+              icon: Icon(Icons.smart_toy), label: 'خدمات AI'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.book),
-            label: 'المقررات',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.smart_toy),
-            label: 'خدمات AI',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'الإعدادات',
-          ),
+              icon: Icon(Icons.settings), label: 'الإعدادات'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
@@ -69,8 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ---------- الصفحات الفرعية ----------
-
+// ✅ الصفحة الرئيسية
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -90,55 +85,7 @@ class HomePage extends StatelessWidget {
   }
 }
 
-class StudySchedulePage extends StatelessWidget {
-  const StudySchedulePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'هنا سيتم عرض الجدول الدراسي',
-        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-class CoursesPage extends StatelessWidget {
-  const CoursesPage({super.key});
-
-  final List<String> courses = const [
-    "البرمجة بلغة Dart",
-    "تطوير تطبيقات Flutter",
-    "تصميم واجهات المستخدم",
-    "قواعد البيانات",
-    "الذكاء الاصطناعي",
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: courses.length,
-      itemBuilder: (context, index) {
-        return Card(
-          elevation: 3,
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          child: ListTile(
-            leading: const Icon(Icons.book, color: Colors.blue),
-            title: Text(
-              courses[index],
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            trailing: const Icon(Icons.arrow_forward_ios, color: Colors.grey),
-            onTap: () {},
-          ),
-        );
-      },
-    );
-  }
-}
-
+// ✅ صفحة خدمات الذكاء الاصطناعي
 class AiServicesPage extends StatelessWidget {
   const AiServicesPage({super.key});
 
@@ -153,6 +100,7 @@ class AiServicesPage extends StatelessWidget {
   }
 }
 
+// ✅ صفحة الإعدادات
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
 

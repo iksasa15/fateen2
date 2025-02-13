@@ -1,63 +1,43 @@
-import 'package:flutter/material.dart';
+import 'course.dart';
+import 'reminder.dart';
 
 class Task {
   String id;
   String name;
   String description;
   DateTime dueDate;
-  TimeOfDay reminder;
-  bool reminderStatus;
+  Course course; // ✅ تعريف `course` كما هو مطلوب
+  DateTime reminderTime;
+  String status;
+  List<Reminder> reminders;
+  String courseId; // ✅ تعريف `courseId`
 
   Task({
     required this.id,
     required this.name,
     required this.description,
     required this.dueDate,
-    required this.reminder,
-    this.reminderStatus = false,
+    required this.course, // ✅ تمرير `course` بشكل صحيح
+    required this.reminderTime,
+    required this.status,
+    required this.reminders,
+    required this.courseId,
   });
 
-  // تحديث حالة المهمة
-  void updateStatus(bool status) {
-    reminderStatus = status;
+  // **دوال إدارة المهام**
+  void createTask() {
+    print("📝 تم إنشاء المهمة: $name");
   }
 
-  // استرجاع جميع المهام
-  static List<Task> getAllTasks(List<Task> tasks) {
-    return tasks;
+  void deleteTask() {
+    print("🗑 تم حذف المهمة: $name");
   }
 
-  // إنشاء مهمة جديدة
-  static void createTask(List<Task> tasks, Task task) {
-    tasks.add(task);
-  }
-
-  // حذف مهمة
-  static void deleteTask(List<Task> tasks, String taskId) {
-    tasks.removeWhere((task) => task.id == taskId);
-  }
-
-  // تعديل مهمة
-  static void updateTask(List<Task> tasks, String taskId, Task updatedTask) {
-    int index = tasks.indexWhere((task) => task.id == taskId);
-    if (index != -1) {
-      tasks[index] = updatedTask;
-    }
-  }
-
-  // استرجاع بيانات مهمة معينة
-  static Task? getTask(List<Task> tasks, String taskId) {
-    return tasks.firstWhere((task) => task.id == taskId,
-        orElse: () => Task(
-            id: '',
-            name: '',
-            description: '',
-            dueDate: DateTime.now(),
-            reminder: TimeOfDay.now()));
-  }
-
-  // استرجاع قائمة التذكيرات
-  static List<Task> getReminders(List<Task> tasks) {
-    return tasks.where((task) => task.reminderStatus).toList();
+  void viewTaskDetails() {
+    print("📄 تفاصيل المهمة:");
+    print("- الاسم: $name");
+    print("- الحالة: $status");
+    print("- تاريخ التسليم: $dueDate");
+    print("- المادة: ${course.courseName}"); // ✅ إظهار اسم المادة
   }
 }
