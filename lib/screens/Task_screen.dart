@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // لإضافة تنسيق التاريخ
 import '../models/task.dart';
 import '../models/course.dart';
-import 'package:intl/intl.dart'; // ✅ لإضافة تنسيق التاريخ
 
 class TaskScreen extends StatefulWidget {
   @override
@@ -12,16 +12,15 @@ class _TaskScreenState extends State<TaskScreen> {
   List<Task> tasks = [];
 
   void _addTask() {
-    // إنشاء كائن Course بالصيغة الجديدة (حذف lectureTime واستبدالها بـ days)
+    // بناء كائن Course بالهيكلة الجديدة (بدون tasks أو reminders)
     Course sampleCourse = Course(
       id: '1',
       courseName: 'برمجة تطبيقات الموبايل',
       creditHours: 3,
-      days: ['الأحد', 'الأربعاء'], // استبدلنا lectureTime بـ days
+      days: ['الأحد', 'الأربعاء'], // أمثلة للأيام المختارة
       classroom: 'قاعة 101',
-      grades: {},
-      tasks: [],
-      reminders: [],
+      grades: {}, // أو أي داتا أخرى ضرورية
+      lectureTime: null, // إن لم تكن عندك قيمة محددة
     );
 
     setState(() {
@@ -31,11 +30,13 @@ class _TaskScreenState extends State<TaskScreen> {
           name: 'مهمة جديدة',
           description: 'تفاصيل المهمة الجديدة',
           dueDate: DateTime.now().add(Duration(days: 7)),
-          course: sampleCourse, // ✅ تمرير `course` هنا
-          courseId: sampleCourse.id, // ✅ تمرير `courseId` أيضًا
+          course: sampleCourse, // تمرير الكورس لأغراض العرض أو المعالجة
+          courseId: sampleCourse.id, // حفظ معرف الكورس ليسهل الربط لاحقًا
           reminderTime: DateTime.now().add(Duration(days: 6)),
           status: "غير مكتملة",
-          reminders: [], // ✅ إضافة قائمة `reminders` لتجنب الأخطاء
+          // إن كان كلاس Task لا يزال يدعم reminders، يمكنك إبقاؤه إن أردت
+          // وإلا أزل هذا الحقل من الكائن ومن كلاس Task
+          reminders: [],
         ),
       );
     });

@@ -1,14 +1,24 @@
+// lib/models/schedule.dart
 import 'dart:core';
 import 'course.dart';
 
 class Schedule {
   // قائمة الكورسات في الجدول الدراسي
-  List<Course> courses;
+  final List<Course> courses;
 
   // **المُنشئ**
   Schedule({List<Course>? courses}) : courses = courses ?? [];
 
-  // **الدوال الأساسية**
+  // خريطة تربط اليوم (كاسم بالعربي) برقم (0 للأحد، 1 للإثنين، ...)
+  static const Map<String, int> dayToIndex = {
+    'الأحد': 0,
+    'الإثنين': 1,
+    'الثلاثاء': 2,
+    'الأربعاء': 3,
+    'الخميس': 4,
+    'الجمعة': 5,
+    'السبت': 6,
+  };
 
   /// عرض الجدول الأسبوعي
   void displayWeeklySchedule() {
@@ -19,13 +29,12 @@ class Schedule {
 
     print("📆 الجدول الأسبوعي:");
     for (var course in courses) {
-      // طباعة قائمة الأيام بدلًا من وقت المحاضرة
       print(
           "- 🏫 ${course.courseName} | 🗓 أيام المحاضرة: ${course.days.join('، ')} | 📍 ${course.classroom}");
     }
   }
 
-  /// عرض تفاصيل جميع الكورسات في الجدول
+  /// عرض تفاصيل جميع الكورسات
   void displayCourseDetails() {
     if (courses.isEmpty) {
       print("📚 لا يوجد كورسات متاحة.");
@@ -38,12 +47,43 @@ class Schedule {
     }
   }
 
-  /// هذه الدالة لم تعد صالحة مع خاصية `days`
-  /// يمكنك تصميم خوارزمية جديدة تحدد المحاضرة القادمة حسب اليوم الحالي.
+  /// هذه دالة تجريبية لتحديد أقرب محاضرة بناءً على اليوم الحالي
   Course? getNextLecture() {
-    print("⚠ لم يعد possible حساب المحاضرة القادمة بناءً على days فقط.");
-    // مثال: إرجاع null دائمًا أو تعديلها لتلائم الأيام.
-    return null;
+    if (courses.isEmpty) return null;
+
+    final now = DateTime.now();
+    // في Dart: weekday الأحد=7، الاثنين=1، إلى السبت=6
+    // نستخدم mod 7 لجعل الأحد=0
+    final currentWeekdayIndex = now.weekday % 7;
+
+    Course? nextCourse;
+    int? minDelta;
+
+    for (var course in courses) {
+      for (var day in course.days) {
+        final dayIndex = dayToIndex[day];
+        if (dayIndex == null) continue;
+
+        int delta = dayIndex - currentWeekdayIndex;
+        if (delta < 0) {
+          delta += 7; // الأسبوع التالي
+        }
+
+        if (minDelta == null || delta < minDelta) {
+          minDelta = delta;
+          nextCourse = course;
+        }
+      }
+    }
+
+    if (nextCourse == null) {
+      print("⚠ لا يمكن حساب المحاضرة القادمة بدقة.");
+    } else {
+      print(
+          "✅ أقرب محاضرة قادمة هي '${nextCourse.courseName}' خلال $minDelta يوم/أيام.");
+    }
+
+    return nextCourse;
   }
 
   /// إضافة كورس جديد إلى الجدول

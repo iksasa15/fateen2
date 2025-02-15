@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'task_screen.dart';
 import 'schedule_screen.dart';
 import 'course_screen.dart';
-import 'file_screen.dart';
+
 import 'edit_profile_screen.dart'; // استيراد صفحة التعديل الجديدة
 
 class HomeScreen extends StatefulWidget {
@@ -24,7 +24,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ScheduleScreen(),
     CourseScreen(),
     TaskScreen(),
-    FileScreen(),
     const AiServicesPage(),
     const SettingsPage(),
   ];

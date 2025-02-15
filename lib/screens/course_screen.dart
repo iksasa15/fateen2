@@ -1,8 +1,15 @@
+// lib/screens/course_screen.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+// حزم لاختيار الملفات وفتحها
+import 'package:file_picker/file_picker.dart';
+import 'package:open_filex/open_filex.dart';
+
 import '../models/course.dart';
+import '../models/app_file.dart';
+import '../models/task.dart';
 
 class CourseScreen extends StatefulWidget {
   @override
@@ -10,67 +17,40 @@ class CourseScreen extends StatefulWidget {
 }
 
 class _CourseScreenState extends State<CourseScreen> {
-  // الأيام الممكن اختيارها
-  final List<String> selectableDays = [
-    'الأحد',
-    'الإثنين',
-    'الثلاثاء',
-    'الأربعاء',
-    'الخميس',
-  ];
-
-  // قائمة المقررات (سيتم تحميلها من فايرستور)
+  User? currentUser;
   List<Course> courses = [];
 
-  // حقول التحكم (لإضافة أو تعديل المقرر)
   final TextEditingController nameController = TextEditingController();
   final TextEditingController creditController = TextEditingController();
   final TextEditingController classroomController = TextEditingController();
-
-  // الأيام المختارة مؤقتًا
   List<String> selectedDays = [];
-  // الوقت المختار مؤقتًا (سنخزِّن قيمته بصيغة string)
   String? selectedTimeString;
 
-  // مرجع إلى المستخدم الحالي (بعد تسجيل الدخول)
-  User? currentUser;
+  // حقول خاصة بالدرجات
+  final TextEditingController _assignmentController = TextEditingController();
+  final TextEditingController _gradeValueController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    // نجلب بيانات المستخدم الحالي
     currentUser = FirebaseAuth.instance.currentUser;
-    // نجلب المقررات من فايرستور
     _fetchCoursesFromFirestore();
   }
 
-  /// جلب جميع المقررات من فايرستور للمستخدم الحالي
+  /// جلب المقررات من فايرستور
   Future<void> _fetchCoursesFromFirestore() async {
-    if (currentUser == null) return; // تأكّد من وجود مستخدم أو تعامل مع الحالة
-
+    if (currentUser == null) return;
     try {
       final userId = currentUser!.uid;
-
-      // جلب المستندات من المسار: users/{userId}/courses
       final snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('courses')
           .get();
 
-      // تحويل الداتا إلى كائنات Course
       final List<Course> loadedCourses = snapshot.docs.map((doc) {
         final data = doc.data();
-        return Course(
-          id: data['id'] ?? doc.id,
-          courseName: data['courseName'],
-          creditHours: data['creditHours'],
-          days: List<String>.from(data['days'] ?? []),
-          classroom: data['classroom'],
-          lectureTime: data['lectureTime'],
-          grades: Map<String, double>.from(data['grades'] ?? {}),
-          // tasks / reminders لم نضفها في toMap() بالضرورة، حسب حاجتك
-        );
+        return Course.fromMap(data, doc.id);
       }).toList();
 
       setState(() {
@@ -81,100 +61,60 @@ class _CourseScreenState extends State<CourseScreen> {
     }
   }
 
-  /// حفظ مقرر جديد أو تعديل مقرر موجود في فايرستور
-  Future<void> _saveOrUpdateCourseInFirestore(Course course) async {
-    if (currentUser == null) return; // تأكّد من وجود مستخدم
-
-    final userId = currentUser!.uid;
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('courses')
-        .doc(course.id);
-
-    // تحويل الكائن إلى Map (اعتمدنا وجود toMap في كلاس Course؛ إن لم تكن موجودة، نكتب map هنا)
-    final courseData = {
-      'id': course.id,
-      'courseName': course.courseName,
-      'creditHours': course.creditHours,
-      'days': course.days,
-      'classroom': course.classroom,
-      'lectureTime': course.lectureTime,
-      'grades': course.grades,
-      // إذا لديك حقول أخرى (tasks, reminders) وتريد حفظها، أضفها هنا أيضًا
-    };
-
-    await docRef.set(courseData, SetOptions(merge: true));
-  }
-
-  /// حذف مقرر من فايرستور
-  Future<void> _deleteCourseFromFirestore(String courseId) async {
-    if (currentUser == null) return;
-    final userId = currentUser!.uid;
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('courses')
-        .doc(courseId)
-        .delete();
-  }
-
-  /// فتح واجهة BottomSheet لإضافة/تعديل المقرر
+  // BottomSheet لإضافة/تعديل المقرر
   void _showCourseBottomSheet({Course? course, int? index}) {
-    bool isEditing = course != null;
+    bool isEditing = (course != null);
 
-    // تعبئة الحقول إذا كنا نعدّل
+    // تعبئة الحقول
     nameController.text = isEditing ? course!.courseName : '';
     creditController.text = isEditing ? course!.creditHours.toString() : '';
     classroomController.text = isEditing ? course!.classroom : '';
-    selectedDays = isEditing ? List.from(course!.days) : [];
+    selectedDays = isEditing ? List<String>.from(course!.days) : [];
     selectedTimeString = isEditing ? course!.lectureTime : null;
 
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // يسمح بتمديد الـBottomSheet
+      isScrollControlled: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (ctx) {
         return Padding(
-          // لضمان عدم اختفاء الواجهة خلف لوحة المفاتيح
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
           child: SingleChildScrollView(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
                     isEditing ? 'تعديل المقرر' : 'إضافة مقرر جديد',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 10),
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: "اسم المقرر"),
+                    decoration: InputDecoration(labelText: "اسم المقرر"),
                   ),
                   TextField(
                     controller: creditController,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: "عدد الساعات"),
+                    decoration: InputDecoration(labelText: "عدد الساعات"),
                   ),
                   TextField(
                     controller: classroomController,
-                    decoration:
-                        const InputDecoration(labelText: "قاعة المحاضرة"),
+                    decoration: InputDecoration(labelText: "قاعة المحاضرة"),
                   ),
-                  const SizedBox(height: 10),
-                  // اختيار الأيام باستخدام ChoiceChip
+                  SizedBox(height: 10),
                   Wrap(
                     spacing: 8.0,
-                    children: selectableDays.map((day) {
+                    children: [
+                      'الأحد',
+                      'الإثنين',
+                      'الثلاثاء',
+                      'الأربعاء',
+                      'الخميس',
+                    ].map((day) {
                       bool isSelected = selectedDays.contains(day);
                       return ChoiceChip(
                         label: Text(day),
@@ -191,89 +131,88 @@ class _CourseScreenState extends State<CourseScreen> {
                       );
                     }).toList(),
                   ),
-                  const SizedBox(height: 10),
-                  // اختيار وقت المحاضرة
+                  SizedBox(height: 10),
                   ListTile(
                     title: Text(selectedTimeString == null
                         ? 'حدد وقت المحاضرة'
                         : 'وقت المحاضرة: $selectedTimeString'),
                     trailing: Icon(Icons.access_time),
                     onTap: () async {
-                      // إظهار أداة اختيار الوقت
                       TimeOfDay? pickedTime = await showTimePicker(
                         context: context,
                         initialTime: TimeOfDay.now(),
                       );
                       if (pickedTime != null) {
-                        // تنسيق الوقت لعرضه كنص  "12:30" مثلاً
                         String formattedTime =
-                            pickedTime.hour.toString().padLeft(2, '0') +
-                                ':' +
-                                pickedTime.minute.toString().padLeft(2, '0');
+                            '${pickedTime.hour.toString().padLeft(2, '0')}:'
+                            '${pickedTime.minute.toString().padLeft(2, '0')}';
                         setState(() {
                           selectedTimeString = formattedTime;
                         });
                       }
                     },
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text("إلغاء"),
+                        onPressed: () => Navigator.pop(ctx),
+                        child: Text("إلغاء"),
                       ),
                       ElevatedButton(
                         onPressed: () async {
-                          // التحقق من صحة الإدخال
                           if (nameController.text.isNotEmpty &&
                               creditController.text.isNotEmpty &&
                               classroomController.text.isNotEmpty &&
-                              selectedDays.isNotEmpty &&
-                              selectedTimeString != null) {
-                            final newCourse = Course(
-                              id: isEditing
-                                  ? course!.id
-                                  : DateTime.now()
-                                      .millisecondsSinceEpoch
-                                      .toString(),
-                              courseName: nameController.text,
-                              creditHours: int.tryParse(
-                                    creditController.text,
-                                  ) ??
-                                  0,
-                              days: List.from(selectedDays),
-                              classroom: classroomController.text,
-                              lectureTime: selectedTimeString,
-                              // إذا ننشئ مقرر جديد نضع الحقول الأخرى فارغة
-                              // أما إن كنا نعدّل، نحتفظ بـ grades/tasks/reminders كما هي
-                              grades: isEditing ? course!.grades : {},
-                              tasks: isEditing ? course!.tasks : [],
-                              reminders: isEditing ? course!.reminders : [],
-                            );
+                              selectedDays.isNotEmpty) {
+                            final creditValue =
+                                int.tryParse(creditController.text) ?? 0;
 
-                            setState(() {
-                              if (isEditing && index != null) {
-                                // تعديل المقرر في القائمة
-                                courses[index] = newCourse;
-                              } else {
-                                // إضافة مقرر جديد
+                            if (isEditing && index != null) {
+                              // التعديل
+                              course!.modifyCourseDetails(
+                                nameController.text,
+                                creditValue,
+                                selectedDays,
+                                classroomController.text,
+                                selectedTimeString,
+                              );
+                              // حفظ في فايرستور (إذا تحتاجه)
+                              await course.saveToFirestore(currentUser);
+                              setState(() {
+                                courses[index] = course;
+                              });
+                            } else {
+                              // الإضافة
+                              final newCourse = Course(
+                                id: DateTime.now()
+                                    .millisecondsSinceEpoch
+                                    .toString(),
+                                courseName: nameController.text,
+                                creditHours: creditValue,
+                                days: selectedDays,
+                                classroom: classroomController.text,
+                                lectureTime: selectedTimeString,
+                                grades: {},
+                                tasks: [],
+                                reminders: [],
+                                files: [], // قائمة ملفات فارغة
+                              );
+                              setState(() {
                                 courses.add(newCourse);
-                              }
-                            });
+                              });
+                              // حفظ في فايرستور
+                              await newCourse.saveToFirestore(currentUser);
+                            }
 
-                            // حفظ/تحديث في فايرستور
-                            await _saveOrUpdateCourseInFirestore(newCourse);
-
-                            Navigator.pop(context);
+                            Navigator.pop(ctx);
                           }
                         },
                         child: Text("حفظ"),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
                 ],
               ),
             ),
@@ -283,20 +222,21 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // حذف مقرّر
+  // حذف كورس
   void _deleteCourse(int index) async {
     final course = courses[index];
     setState(() {
       courses.removeAt(index);
     });
-    // نحذف أيضًا من فايرستور
-    await _deleteCourseFromFirestore(course.id);
+
+    await course.deleteFromFirestore(currentUser);
   }
 
-  // -------------------------------------------------------
-  // واجهة إدارة الدرجات (المواد --> الدرجات)
-  // -------------------------------------------------------
-  /// عرض قائمة بالدرجات الخاصة بمقرر معين، مع إمكانية إضافة أو تعديل الدرجات
+  // -----------------------------------------------
+  //    واجهة الدرجات: عرض وإنشاء/تعديل الدرجات
+  // -----------------------------------------------
+
+  // BottomSheet لعرض الدرجات الخاصة بكل كورس
   void _showGradesBottomSheet(Course course) {
     showModalBottomSheet(
       context: context,
@@ -304,35 +244,28 @@ class _CourseScreenState extends State<CourseScreen> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
+      builder: (ctx) {
         return Container(
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
             top: 16,
-            // لضمان عدم اختفاء المحتوى خلف لوحة المفاتيح
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'درجات المقرر: ${course.courseName}',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              // عرض الدرجات إن وجدت
+              SizedBox(height: 10),
               if (course.grades.isEmpty) ...[
-                const SizedBox(height: 8),
-                const Text(
-                  'لا توجد درجات مسجّلة بعد 😢',
-                  style: TextStyle(fontSize: 16),
-                ),
+                Text('لا توجد درجات مسجّلة بعد 🤔'),
+                SizedBox(height: 10),
               ] else ...[
                 ListView(
-                  shrinkWrap: true,
+                  shrinkWrap: true, // حتى لا يملأ كامل الشاشة
                   children: course.grades.entries.map((entry) {
                     final assignment = entry.key;
                     final gradeValue = entry.value;
@@ -341,7 +274,6 @@ class _CourseScreenState extends State<CourseScreen> {
                       trailing: IconButton(
                         icon: Icon(Icons.edit),
                         onPressed: () {
-                          // فتح واجهة تعديل الدرجة
                           _showGradeDialog(course, assignment, gradeValue);
                         },
                       ),
@@ -349,14 +281,13 @@ class _CourseScreenState extends State<CourseScreen> {
                   }).toList(),
                 ),
               ],
-              const SizedBox(height: 12),
-              // زر إضافة درجة جديدة
+              SizedBox(height: 10),
               ElevatedButton.icon(
+                icon: Icon(Icons.add),
+                label: Text('إضافة درجة'),
                 onPressed: () {
                   _showGradeDialog(course, null, null);
                 },
-                icon: Icon(Icons.add),
-                label: Text('إضافة درجة'),
               ),
             ],
           ),
@@ -365,15 +296,12 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  /// إضافة درجة جديدة أو تعديل درجة سابقة
-  final TextEditingController _assignmentController = TextEditingController();
-  final TextEditingController _gradeValueController = TextEditingController();
-
+  // BottomSheet لإضافة أو تعديل درجة
   void _showGradeDialog(Course course, String? assignment, double? oldGrade) {
-    // تعبئة الحقول في حال كنا نعدّل
     bool isEditing = (assignment != null && oldGrade != null);
-    _assignmentController.text = isEditing ? assignment : '';
-    _gradeValueController.text = isEditing ? oldGrade.toString() : '';
+    // تعبئة الحقول إذا كنا نعدل درجة
+    _assignmentController.text = isEditing ? assignment! : '';
+    _gradeValueController.text = isEditing ? oldGrade!.toString() : '';
 
     showModalBottomSheet(
       context: context,
@@ -381,13 +309,13 @@ class _CourseScreenState extends State<CourseScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       isScrollControlled: true,
-      builder: (context) {
+      builder: (ctx) {
         return Padding(
           padding: EdgeInsets.only(
             left: 16,
             right: 16,
             top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -396,56 +324,53 @@ class _CourseScreenState extends State<CourseScreen> {
                 isEditing ? 'تعديل الدرجة' : 'إضافة درجة جديدة',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 10),
               TextField(
                 controller: _assignmentController,
-                decoration: const InputDecoration(labelText: 'اسم التقييم'),
+                decoration: InputDecoration(labelText: 'اسم التقييم'),
               ),
               TextField(
                 controller: _gradeValueController,
+                decoration: InputDecoration(labelText: 'الدرجة (0-100)'),
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'الدرجة (0-100)'),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('إلغاء'),
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('إلغاء'),
                   ),
                   ElevatedButton(
                     onPressed: () async {
                       final assignmentName = _assignmentController.text.trim();
-                      final gradeValue = double.tryParse(
-                            _gradeValueController.text,
-                          ) ??
-                          -1;
+                      final newGrade =
+                          double.tryParse(_gradeValueController.text) ?? -1;
 
-                      // التحقق السريع من صحة البيانات
-                      if (assignmentName.isNotEmpty && gradeValue >= 0) {
+                      if (assignmentName.isNotEmpty && newGrade >= 0) {
                         setState(() {
                           if (isEditing) {
-                            // حذف اسم التقييم القديم وإضافة الجديد
-                            // (في حال كانت الأسماء مختلفة)
+                            // تعديل درجة
+                            // إذا تغيّر اسم التقييم، نحذف القديم وننشئ جديد
                             if (assignment != assignmentName) {
                               course.grades.remove(assignment);
                             }
-                            course.modifyGrade(assignmentName, gradeValue);
+                            course.modifyGrade(assignmentName, newGrade);
                           } else {
                             // إضافة درجة جديدة
-                            course.createGrade(assignmentName, gradeValue);
+                            course.createGrade(assignmentName, newGrade);
                           }
                         });
 
-                        // تحدّيث المقرر في فايرستور
-                        await _saveOrUpdateCourseInFirestore(course);
+                        // حفظ التحديث في فايرستور
+                        await course.saveToFirestore(currentUser);
 
-                        Navigator.pop(
-                            context); // إغلاق BottomSheet الخاصة بالدرجة
-                        Navigator.pop(
-                            context); // إغلاق BottomSheet الخاصة بقائمة الدرجات
-                        // إعادة فتح قائمة الدرجات لتحديث العرض
+                        // إغلاق BottomSheet تعديل الدرجة
+                        Navigator.pop(ctx);
+                        // إغلاق BottomSheet عرض الدرجات
+                        Navigator.pop(ctx);
+                        // إعادة فتح BottomSheet الدرجات حتى نعرض التحديثات
                         _showGradesBottomSheet(course);
                       }
                     },
@@ -460,18 +385,166 @@ class _CourseScreenState extends State<CourseScreen> {
     );
   }
 
-  // -------------------------------------------------------
-  // واجهة البناء الرئيسية
-  // -------------------------------------------------------
+  // -----------------------------------------------
+  //    واجهة الملفات: عرض وإنشاء/تعديل/حذف الملفات
+  // -----------------------------------------------
+
+  void _showFilesBottomSheet(Course course) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            // دالة داخلية لإعادة البناء في الـ BottomSheet
+            void refresh() => setModalState(() {});
+
+            return Container(
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'ملفات المقرر: ${course.courseName}',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 10),
+                  if (course.files.isEmpty) ...[
+                    Text('لا توجد ملفات لهذا المقرر بعد 🤔'),
+                    SizedBox(height: 10),
+                  ] else ...[
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: course.files.length,
+                      itemBuilder: (context, index) {
+                        final appFile = course.files[index];
+                        return ListTile(
+                          title:
+                              Text('${appFile.fileName} (${appFile.fileType})'),
+                          subtitle: Text('الحجم: ${appFile.fileSize} KB'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.remove_red_eye),
+                                tooltip: 'عرض الملف',
+                                onPressed: () async {
+                                  // أولاً, عرض التفاصيل في الـ Console إن شئت
+                                  appFile.viewDetailsInConsole();
+
+                                  // ثم محاولة فتح الملف بواسطة تطبيق مناسب
+                                  if (appFile.filePath != null) {
+                                    final result =
+                                        await OpenFilex.open(appFile.filePath!);
+                                    // يمكنك معاينة النتيجة في الـConsole:
+                                    // result.type == ResultType.done => نجحت العملية
+                                    // result.message => رسالة الخطأ إن وجدت
+                                    debugPrint('OpenFilex result: $result');
+                                  } else {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content:
+                                            Text('لا يوجد مسار لهذا الملف!'),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                tooltip: 'حذف',
+                                onPressed: () async {
+                                  // حذف الملف من الكورس
+                                  setState(() {
+                                    course.removeFile(appFile);
+                                  });
+                                  appFile.deleteFile();
+                                  // حفظ التعديل في فايرستور
+                                  await course.saveToFirestore(currentUser);
+                                  refresh();
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                  SizedBox(height: 10),
+                  ElevatedButton.icon(
+                    icon: Icon(Icons.add),
+                    label: Text('إضافة ملف'),
+                    onPressed: () async {
+                      FilePickerResult? result =
+                          await FilePicker.platform.pickFiles();
+                      if (result != null && result.files.isNotEmpty) {
+                        final pickedFile = result.files.first;
+                        // استخراج المعلومات
+                        final fileName = pickedFile.name;
+                        final fileSize = pickedFile.size ~/ 1024; // بالـ KB
+                        final extension = pickedFile.extension ?? 'UNKNOWN';
+                        final fileType = extension.toUpperCase();
+                        final filePath = pickedFile.path; // مسار الملف
+
+                        // إنشاء كائن الملف
+                        final newAppFile = AppFile(
+                          id: DateTime.now().millisecondsSinceEpoch.toString(),
+                          fileName: fileName,
+                          fileSize: fileSize,
+                          fileType: fileType,
+                          filePath: filePath,
+                        );
+
+                        // استدعاء دالة الرفع (تستطيع تعديلها حسب احتياجك)
+                        newAppFile.upload();
+
+                        // إضافة الملف في قائمة الكورس
+                        setState(() {
+                          course.addFile(newAppFile);
+                        });
+
+                        // حفظ تحديث الكورس في فايرستور
+                        await course.saveToFirestore(currentUser);
+
+                        refresh();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('✅ تم إضافة الملف "$fileName"'),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // -----------------------------------------------
+  //                واجهة البناء
+  // -----------------------------------------------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('📚 إدارة المقررات'),
+        title: Text('📚 إدارة المقررات'),
         backgroundColor: Colors.blueAccent,
       ),
       body: courses.isEmpty
-          ? const Center(
+          ? Center(
               child: Text(
                 'لا توجد مقررات متاحة 😢',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -479,23 +552,17 @@ class _CourseScreenState extends State<CourseScreen> {
             )
           : ListView.builder(
               itemCount: courses.length,
-              itemBuilder: (context, index) {
+              itemBuilder: (ctx, index) {
                 final course = courses[index];
-                // عرض الأيام كـ String
                 final daysString = course.days.join('، ');
-                final lectureTimeStr = (course.lectureTime != null)
-                    ? course.lectureTime
-                    : 'غير محدد';
+                final lectureTimeStr = course.lectureTime ?? 'غير محدد';
 
                 return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
+                  margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: ListTile(
                     title: Text(
                       course.courseName,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
                       'الأيام: $daysString\n'
@@ -505,21 +572,29 @@ class _CourseScreenState extends State<CourseScreen> {
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // إدارة الدرجات
+                        // زر لإدارة الملفات
                         IconButton(
-                          icon: const Icon(Icons.star),
+                          icon: Icon(Icons.attach_file),
+                          tooltip: 'الملفات',
+                          onPressed: () => _showFilesBottomSheet(course),
+                        ),
+                        // زر لعرض الدرجات
+                        IconButton(
+                          icon: Icon(Icons.star),
+                          tooltip: 'الدرجات',
                           onPressed: () => _showGradesBottomSheet(course),
-                          tooltip: 'عرض الدرجات',
                         ),
-                        // تعديل المقرر
+                        // زر تعديل المقرر
                         IconButton(
-                          icon: const Icon(Icons.edit),
+                          icon: Icon(Icons.edit),
                           onPressed: () => _showCourseBottomSheet(
-                              course: course, index: index),
+                            course: course,
+                            index: index,
+                          ),
                         ),
-                        // حذف المقرر
+                        // زر حذف
                         IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
+                          icon: Icon(Icons.delete, color: Colors.red),
                           onPressed: () => _deleteCourse(index),
                         ),
                       ],
@@ -530,7 +605,7 @@ class _CourseScreenState extends State<CourseScreen> {
             ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showCourseBottomSheet(),
-        child: const Icon(Icons.add),
+        child: Icon(Icons.add),
         backgroundColor: Colors.blueAccent,
       ),
     );
