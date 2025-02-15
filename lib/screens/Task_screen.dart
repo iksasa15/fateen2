@@ -12,11 +12,12 @@ class _TaskScreenState extends State<TaskScreen> {
   List<Task> tasks = [];
 
   void _addTask() {
+    // إنشاء كائن Course بالصيغة الجديدة (حذف lectureTime واستبدالها بـ days)
     Course sampleCourse = Course(
       id: '1',
       courseName: 'برمجة تطبيقات الموبايل',
       creditHours: 3,
-      lectureTime: DateTime.now().add(Duration(days: 1, hours: 2)),
+      days: ['الأحد', 'الأربعاء'], // استبدلنا lectureTime بـ days
       classroom: 'قاعة 101',
       grades: {},
       tasks: [],
@@ -70,8 +71,7 @@ class _TaskScreenState extends State<TaskScreen> {
                       '📚 المادة: ${task.course.courseName}\n'
                       '🔹 الحالة: ${task.status}',
                     ),
-                    trailing:
-                        Icon(Icons.arrow_forward_ios), // ✅ تصحيح `trailing`
+                    trailing: Icon(Icons.arrow_forward_ios),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(content: Text('فتح ${task.name}')),

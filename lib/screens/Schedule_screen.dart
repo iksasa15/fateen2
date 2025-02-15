@@ -8,27 +8,28 @@ class ScheduleScreen extends StatefulWidget {
 }
 
 class _ScheduleScreenState extends State<ScheduleScreen> {
-  // إنشاء جدول دراسي مع بعض الكورسات التجريبية
+  // جدول دراسي مع بعض الكورسات التجريبية
   Schedule schedule = Schedule(
     courses: [
       Course(
         id: '1',
         courseName: 'برمجة تطبيقات الموبايل',
         creditHours: 3,
-        lectureTime: DateTime.now().add(Duration(days: 1, hours: 2)),
+        // استبدلنا lectureTime بـ days
+        days: ['الأحد', 'الثلاثاء'],
         classroom: 'قاعة 101',
       ),
       Course(
         id: '2',
         courseName: 'تحليل وتصميم النظم',
         creditHours: 3,
-        lectureTime: DateTime.now().add(Duration(days: 2, hours: 3)),
+        days: ['الإثنين'],
         classroom: 'قاعة 202',
       ),
     ],
   );
 
-  /// دالة لإضافة كورس جديد إلى الجدول (كمثال)
+  /// إضافة كورس جديد إلى الجدول (كمثال)
   void _addCourse() {
     setState(() {
       schedule.addCourse(
@@ -36,7 +37,8 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           courseName: 'كورس جديد',
           creditHours: 3,
-          lectureTime: DateTime.now().add(Duration(days: 3, hours: 4)),
+          // نضع مثلاً الأربعاء والخميس
+          days: ['الأربعاء', 'الخميس'],
           classroom: 'قاعة 303',
         ),
       );
@@ -61,13 +63,18 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
               itemCount: schedule.courses.length,
               itemBuilder: (context, index) {
                 final course = schedule.courses[index];
+                // نطبع الأيام بدل الوقت
+                final daysString = course.days.join('، ');
                 return Card(
                   margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   child: ListTile(
-                    title: Text(course.courseName,
-                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    title: Text(
+                      course.courseName,
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    // نعرض الأيام في الـ subtitle
                     subtitle: Text(
-                        '🕒 ${course.lectureTime} | 🏫 ${course.classroom}'),
+                        '🗓 أيام الكورس: $daysString | 🏫 ${course.classroom}'),
                     trailing: Icon(Icons.calendar_today),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(

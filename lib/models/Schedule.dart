@@ -19,8 +19,9 @@ class Schedule {
 
     print("📆 الجدول الأسبوعي:");
     for (var course in courses) {
+      // طباعة قائمة الأيام بدلًا من وقت المحاضرة
       print(
-          "- 🏫 ${course.courseName} | ⏰ ${course.lectureTime} | 📍 ${course.classroom}");
+          "- 🏫 ${course.courseName} | 🗓 أيام المحاضرة: ${course.days.join('، ')} | 📍 ${course.classroom}");
     }
   }
 
@@ -37,23 +38,11 @@ class Schedule {
     }
   }
 
-  /// جلب المحاضرة القادمة
+  /// هذه الدالة لم تعد صالحة مع خاصية `days`
+  /// يمكنك تصميم خوارزمية جديدة تحدد المحاضرة القادمة حسب اليوم الحالي.
   Course? getNextLecture() {
-    if (courses.isEmpty) return null;
-
-    // ترتيب الكورسات حسب وقت المحاضرة
-    courses.sort((a, b) => a.lectureTime.compareTo(b.lectureTime));
-
-    DateTime now = DateTime.now();
-    for (var course in courses) {
-      if (course.lectureTime.isAfter(now)) {
-        print(
-            "📌 المحاضرة القادمة: ${course.courseName} في ${course.lectureTime}");
-        return course;
-      }
-    }
-
-    print("⏳ لا توجد محاضرات متبقية لهذا اليوم.");
+    print("⚠ لم يعد possible حساب المحاضرة القادمة بناءً على days فقط.");
+    // مثال: إرجاع null دائمًا أو تعديلها لتلائم الأيام.
     return null;
   }
 
